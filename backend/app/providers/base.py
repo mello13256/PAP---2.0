@@ -15,7 +15,7 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any, ClassVar
+from typing import Any
 
 # --------------------------------------------------------------------------- #
 # Mensagens e ferramentas
@@ -220,7 +220,9 @@ class LLMProvider(ABC):
     consome o stream e devolve o resultado final.
     """
 
-    name: ClassVar[str]
+    # Chave no registry. Pode ser definida por instância: a mesma classe
+    # OpenAICompatibleProvider serve "openai", "ollama", "gemini", ...
+    name: str = "base"
 
     @abstractmethod
     def stream(self, request: GenerationRequest) -> AsyncIterator[StreamEvent]:
@@ -240,6 +242,10 @@ class LLMProvider(ABC):
 
     def get_model_info(self, model: str) -> ModelInfo:
         return ModelInfo(provider=self.name, model=model)
+
+    async def list_models(self) -> list[str] | None:
+        """Modelos disponíveis, se o fornecedor permitir listá-los."""
+        return None
 
 
 def parse_tool_arguments(raw: str, *, provider: str) -> dict[str, Any]:

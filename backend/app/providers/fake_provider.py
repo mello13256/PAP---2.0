@@ -16,7 +16,7 @@ import itertools
 import json
 from collections.abc import AsyncIterator, Callable, Iterable
 from dataclasses import dataclass, field
-from typing import Any, ClassVar
+from typing import Any
 
 from app.providers.base import (
     GenerationRequest,
@@ -50,7 +50,7 @@ def _approx_tokens(text: str) -> int:
 
 
 class FakeProvider(LLMProvider):
-    name: ClassVar[str] = "fake"
+    name = "fake"
 
     def __init__(
         self,

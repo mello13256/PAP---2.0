@@ -42,13 +42,19 @@ class Settings(BaseSettings):
 
     workspaces_dir: Path = REPO_ROOT / "workspaces"
 
-    # Fornecedores de LLM (todos opcionais)
+    # Fornecedores de LLM (todos opcionais). Os URLs são os endpoints compatíveis
+    # com a API da OpenAI de cada fornecedor; confirmar na documentação de cada um.
     openai_api_key: SecretStr | None = None
+    openai_base_url: str | None = None
     anthropic_api_key: SecretStr | None = None
+    ollama_enabled: bool = True
     ollama_base_url: str = "http://127.0.0.1:11434/v1"
     github_models_token: SecretStr | None = None
+    github_models_base_url: str = "https://models.github.ai/inference"
     gemini_api_key: SecretStr | None = None
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
     groq_api_key: SecretStr | None = None
+    groq_base_url: str = "https://api.groq.com/openai/v1"
 
     _generated_secret: bool = PrivateAttr(default=False)
 
