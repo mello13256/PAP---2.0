@@ -67,10 +67,19 @@ Abre http://localhost:5173
 
 ## 5. Modelos locais com Ollama (fase dos providers)
 
+Com **32 GB de RAM** dá para correr modelos de ~8B parâmetros e ter **dois
+carregados ao mesmo tempo** (cerca de 5 GB cada, quantizados). É o ideal para ter
+dois agentes de famílias diferentes a colaborar:
+
 ```powershell
-ollama pull granite3.3:2b     # exemplo; o tamanho depende da RAM do PC
+ollama pull granite3.3:8b     # IBM Granite: agente 1
+ollama pull qwen3:8b          # outra família: agente 2 (alternativa: llama3.1:8b)
 ollama list
 ```
+
+Sem placa gráfica dedicada os modelos correm no CPU: funcionam, mas mais devagar
+(algumas palavras por segundo). Para testes rápidos há versões pequenas
+(`granite3.3:2b`).
 
 O nome exato dos modelos disponíveis está em https://ollama.com/library
 (procura "granite").
