@@ -1,0 +1,27 @@
+# Segredos
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+dist/
+
+# Workspaces gerados pelos agentes
+workspaces/
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
