@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     session_ttl_minutes: int = 60 * 12
 
     database_url: str = ""
+    # Aplica as migrações pendentes no arranque (útil em desenvolvimento e na demo).
+    auto_migrate: bool = True
 
     workspaces_dir: Path = REPO_ROOT / "workspaces"
 

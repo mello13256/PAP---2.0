@@ -1,9 +1,11 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 
 import pytest
+from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from app.core.config import Settings
+from app.db.models import Base
 from app.main import create_app
 
 
@@ -15,13 +17,51 @@ def settings(tmp_path) -> Settings:
         secret_key="test-secret-key-not-for-production",
         database_url=f"sqlite+aiosqlite:///{(tmp_path / 'test.db').as_posix()}",
         workspaces_dir=tmp_path / "workspaces",
+        auto_migrate=False,
     )
 
 
 @pytest.fixture
-async def client(settings: Settings) -> AsyncIterator[AsyncClient]:
-    app = create_app(settings)
-    async with app.router.lifespan_context(app):
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as c:
-            yield c
+async def app(settings: Settings) -> AsyncIterator[FastAPI]:
+    application = create_app(settings)
+    async with application.router.lifespan_context(application):
+        # Nos testes as tabelas são criadas diretamente a partir dos modelos (mais rápido);
+        # tests/unit/test_migrations.py garante que as migrações produzem o mesmo esquema.
+        async with application.state.db.engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        yield application
+
+
+@pytest.fixture
+async def make_client(app: FastAPI) -> AsyncIterator[Callable[[], Awaitable[AsyncClient]]]:
+    """Cria clientes HTTP independentes (cada um com os seus cookies = um "browser")."""
+    clients: list[AsyncClient] = []
+
+    async def factory() -> AsyncClient:
+        c = AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+        clients.append(c)
+        return c
+
+    yield factory
+    for c in clients:
+        await c.aclose()
+
+
+@pytest.fixture
+async def client(make_client) -> AsyncClient:
+    return await make_client()
+
+
+async def register(client: AsyncClient, email: str = "ana@example.com") -> dict:
+    response = await client.post(
+        "/api/auth/register",
+        json={"email": email, "display_name": "Ana", "password": "password-segura"},
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+@pytest.fixture
+async def auth_client(client: AsyncClient) -> AsyncClient:
+    await register(client)
+    return client
