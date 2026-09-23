@@ -1,0 +1,5 @@
+{
+  "_comment": "Preços em USD por milhão de tokens, chave 'provider/modelo'. Preencher com os valores oficiais em vigor; modelos sem preço ficam com custo '—'. Providers em free_providers custam 0.",
+  "free_providers": ["ollama"],
+  "models": {}
+}

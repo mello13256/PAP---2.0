@@ -16,12 +16,15 @@ from fastapi import FastAPI
 from app import __version__
 from app.api import health
 from app.auth import router as auth_router
-from app.core.config import Settings, get_settings
+from app.core.config import BACKEND_DIR, Settings, get_settings
 from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging
 from app.db.migrations import upgrade_to_head
 from app.db.session import Database
+from app.metrics.recorder import DatabaseCallRecorder
 from app.projects import router as projects_router
+from app.providers.pricing import PricingTable
+from app.providers.setup import build_registry
 
 logger = logging.getLogger("multimind")
 
@@ -51,6 +54,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = settings
     app.state.db = db
+    app.state.providers = build_registry(settings)
+    app.state.pricing = PricingTable.from_file(BACKEND_DIR / "pricing.json")
+    app.state.call_recorder = DatabaseCallRecorder(db.sessionmaker)
     register_error_handlers(app)
 
     app.include_router(health.router, prefix="/api")
