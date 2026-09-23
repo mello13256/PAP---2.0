@@ -2,7 +2,13 @@
 
 > Documento de base da PAP. Define **o que** vamos construir, **como** e **porquê**,
 > antes de escrever qualquer linha de código. Todas as decisões aqui registadas
-> podem ser revistas, mas qualquer alteração deve ficar documentada (ver secção 15).
+> podem ser revistas, mas qualquer alteração deve ficar documentada em
+> [`decisoes-tecnicas.md`](decisoes-tecnicas.md).
+>
+> **Revisão 1 (após as respostas da secção 20):** orçamento zero para APIs
+> (fornecedores gratuitos e modelos locais via Ollama, DT-01), **SQLite** em vez de
+> PostgreSQL (DT-02), sem sandbox de execução de código (DT-03), interface
+> bilingue (DT-04), âmbito ajustado a ~6 h/semana (DT-05).
 
 ---
 
@@ -205,7 +211,7 @@ problema real do projeto e consegues explicá-la na defesa?**
 | Validação | **Pydantic v2** | ✅ (vem com FastAPI) | Os mesmos modelos validam pedidos HTTP **e** as respostas estruturadas dos LLMs (planos, revisões). |
 | ORM | **SQLAlchemy 2.0 (async)** | ✅ Manter | Standard em Python; modelos tipados; abstrai a BD (testes podem usar SQLite). |
 | Migrações | **Alembic** | ✅ Manter | O esquema vai evoluir ao longo das fases; migrações versionadas são a forma correta. |
-| Base de dados | **PostgreSQL 16** | ✅ Manter (com nota) | O orquestrador escreve continuamente (eventos, mensagens, métricas) enquanto a API lê — o SQLite bloqueia a BD inteira em cada escrita e isso causaria erros `database is locked`. PostgreSQL corre com **um comando** via Docker Compose. Os testes automáticos usam SQLite em memória. |
+| Base de dados | ~~PostgreSQL 16~~ → **SQLite (WAL)** — ver DT-02 | 🔁 Revisto | O orquestrador escreve continuamente (eventos, mensagens, métricas) enquanto a API lê — o SQLite bloqueia a BD inteira em cada escrita e isso causaria erros `database is locked`. PostgreSQL corre com **um comando** via Docker Compose. Os testes automáticos usam SQLite em memória. |
 | Tempo real | **SSE** (Server-Sent Events) | 🔁 Escolhido **em vez de WebSockets** | O fluxo em tempo real é **unidirecional** (servidor → browser: tokens, eventos). Os comandos do utilizador (pausar, aprovar…) são pedidos REST normais. SSE é HTTP simples, reconecta automaticamente e retoma a partir do último evento (`Last-Event-ID`). WebSockets trariam gestão de ligação bidirecional sem benefício. |
 | Execução em background | **asyncio tasks** no próprio processo, geridas por um `RunManager` | 🔁 **Sem Celery/Redis** | Uma fila distribuída é para vários servidores e milhares de jobs. Aqui há poucas execuções simultâneas. O estado vive na BD, por isso uma execução interrompida pode ser retomada. Limitação documentada: um só processo. |
 | Frontend | **React + TypeScript + Vite** | ✅ Manter | Tipos partilhados com o contrato da API reduzem erros; Vite é simples e rápido. |
@@ -217,7 +223,7 @@ problema real do projeto e consegues explicá-la na defesa?**
 | Workspace | **BD como fonte de verdade + espelho em disco**; exportação **Git** opcional | 🔁 Ajustado | Ver secção 12.1. |
 | Autenticação | **Cookie httpOnly com token assinado** + passwords com **argon2/bcrypt** | ✅ | O `EventSource` do browser (SSE) não permite cabeçalhos `Authorization`; um cookie httpOnly funciona e não fica acessível a JavaScript (protege contra XSS). |
 | Qualidade | **ruff** (lint+format), **pytest**, **mypy** (opcional), **ESLint + tsc** | ✅ | Ferramentas standard, uma por função. |
-| Infra local | **Docker Compose** só para o PostgreSQL | ✅ | Backend e frontend correm diretamente na máquina durante o desenvolvimento (mais fácil de depurar). |
+| Infra local | ~~Docker Compose~~ → nada a instalar para a BD (SQLite) — ver DT-02 | 🔁 Revisto | Backend e frontend correm diretamente na máquina durante o desenvolvimento (mais fácil de depurar). |
 
 ### 4.2 Tecnologias deliberadamente rejeitadas
 
@@ -244,7 +250,6 @@ PAP---2.0/
 ├── README.md
 ├── .gitignore                    # inclui .env, workspaces/, node_modules/
 ├── .env.example                  # nomes das variáveis, sem valores reais
-├── docker-compose.yml            # PostgreSQL
 ├── docs/                         # documentação da PAP (ver 18.3)
 │
 ├── backend/
@@ -988,7 +993,8 @@ só será escrita depois de corridas as experiências reais.
 
 | # | Risco | Prob. | Impacto | Mitigação |
 |---|-------|-------|---------|-----------|
-| R1 | Custo das APIs durante desenvolvimento/experiências | Alta | Médio | FakeProvider para 95% do desenvolvimento; limites de custo por run; modelos mais baratos nas experiências longas. |
+| R1 | Custo das APIs / limites dos planos gratuitos | Alta | Alto | Orçamento zero (DT-01): Ollama local + planos gratuitos; FakeProvider para 95% do desenvolvimento; limite de chamadas por run. |
+| R1b | Modelos locais pequenos falham no tool calling | Alta | Alto | Modo de fallback com JSON validado (DT-01); escolher modelos com suporte a ferramentas. |
 | R2 | Output estruturado inválido (JSON mal formado, campos em falta) | Média | Alto | Tool calling com esquema estrito + validação Pydantic + 1 retry com o erro. |
 | R3 | Diferenças entre APIs no streaming com ferramentas | Média | Médio | Tipos `StreamEvent` normalizados; testes de contrato por provider. |
 | R4 | Execuções longas (minutos) numa demo ao vivo | Alta | Alto | Tarefa de demo pequena; paralelismo; **replay** de um run real anterior (os eventos estão guardados — não é mockup, é histórico real). |
@@ -1129,3 +1135,13 @@ Antes da Fase 1 convém definir:
 4. **Idioma da interface**: português, inglês, ou ambos?
 5. Aprovação (ou alterações) às decisões principais: SSE em vez de WebSockets,
    sem Celery/Redis, BD como fonte de verdade do versionamento, sem frameworks de agentes.
+
+### Respostas (Revisão 1)
+
+| Questão | Resposta | Impacto |
+|---------|----------|---------|
+| Tempo | ~6 h/semana | DT-05 |
+| Orçamento APIs | 0 € | DT-01 |
+| Sistema | Windows 11 IoT Enterprise LTSC, sem Docker | DT-02, DT-03, DT-06 |
+| Idioma | Português e inglês | DT-04 |
+| Decisões | Aprovadas, com liberdade para ajustar | — |
