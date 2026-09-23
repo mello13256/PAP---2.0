@@ -52,7 +52,7 @@ class AgentSpec:
     model: str
     system_prompt: str = ""
     temperature: float | None = None
-    max_output_tokens: int = 2048
+    max_output_tokens: int = 8192
     capabilities: tuple[str, ...] = ()
 
     @classmethod
@@ -65,7 +65,7 @@ class AgentSpec:
             model=agent.model,
             system_prompt=agent.system_prompt,
             temperature=config.get("temperature"),
-            max_output_tokens=int(config.get("max_output_tokens", 2048)),
+            max_output_tokens=int(config.get("max_output_tokens", 8192)),
             capabilities=tuple(agent.capabilities or ()),
         )
 

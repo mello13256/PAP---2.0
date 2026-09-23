@@ -7,6 +7,7 @@ interface mostra apenas os fornecedores que podem realmente ser usados.
 from __future__ import annotations
 
 from app.core.config import Settings
+from app.providers.anthropic_provider import AnthropicProvider
 from app.providers.fake_provider import FakeProvider
 from app.providers.openai_compatible import OpenAICompatibleOptions, OpenAICompatibleProvider
 from app.providers.registry import ProviderRegistry
@@ -27,6 +28,12 @@ def build_registry(settings: Settings) -> ProviderRegistry:
                 base_url=settings.openai_base_url,
                 options=OpenAICompatibleOptions(max_tokens_param="max_completion_tokens"),
             ),
+        )
+
+    if settings.anthropic_api_key:
+        registry.register(
+            "anthropic",
+            AnthropicProvider(api_key=settings.anthropic_api_key.get_secret_value()),
         )
 
     if settings.ollama_enabled:

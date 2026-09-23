@@ -13,7 +13,19 @@ def test_only_configured_providers_are_registered() -> None:
 
 def test_providers_with_keys_are_registered() -> None:
     registry = build_registry(
-        _settings(openai_api_key="sk-test", gemini_api_key="g-test", github_models_token="gh")
+        _settings(
+            openai_api_key="sk-test",
+            anthropic_api_key="sk-ant-test",
+            gemini_api_key="g-test",
+            github_models_token="gh",
+        )
     )
-    assert registry.available() == ["fake", "gemini", "github_models", "ollama", "openai"]
+    assert registry.available() == [
+        "anthropic",
+        "fake",
+        "gemini",
+        "github_models",
+        "ollama",
+        "openai",
+    ]
     assert registry.get("gemini").name == "gemini"

@@ -115,3 +115,29 @@ tipado é suficiente, não tem dependências e é fácil de explicar.
 **Decisão.** O guia de instalação (`docs/guia-instalacao-windows.md`) usa os
 instaladores oficiais: python.org, nodejs.org, git-scm.com e ollama.com.
 Usamos `pip` + `venv` (ferramentas padrão do Python) em vez de gestores extra.
+
+---
+
+## DT-07 — Ferramenta "obrigatória" pedida por instrução
+
+**Contexto.** Para obter respostas estruturadas (plano, revisão, resultado), o
+orquestrador pede ao modelo que chame uma ferramenta específica (`submit_plan`, …).
+Alguns modelos recentes da Anthropic rejeitam forçar uma ferramenta, e os modelos
+locais pequenos nem sempre obedecem.
+
+**Decisão.** A abstração continua a ter `ToolChoice.force(nome)`. Cada provider
+traduz como puder: o compatível-OpenAI envia `tool_choice`, e o da Anthropic envia
+`auto` e uma instrução explícita. **O orquestrador nunca assume que a ferramenta foi
+chamada**: verifica, e se não foi, pede de novo (com limite) ou usa o modo de
+fallback JSON (DT-01).
+
+---
+
+## DT-08 — Campo opaco `provider_payload`
+
+**Contexto.** A Anthropic exige que os blocos de "thinking" sejam reenviados intactos
+no histórico de uma conversa com ferramentas.
+
+**Decisão.** `GenerationResult` e `ChatMessage` têm um campo `provider_payload` opaco.
+Só o provider que o criou o interpreta; os outros ignoram-no. A abstração continua
+genérica e não fica a conhecer os detalhes da Anthropic.

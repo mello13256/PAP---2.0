@@ -44,14 +44,28 @@ class ChatMessage:
     tool_calls: tuple[ToolCall, ...] = ()  # só em mensagens ASSISTANT
     tool_call_id: str | None = None  # só em mensagens TOOL
     is_error: bool = False  # só em mensagens TOOL: a ferramenta falhou
+    # Conteúdo original devolvido pelo provider (ex.: blocos de "thinking" da Anthropic),
+    # que tem de ser reenviado sem alterações no histórico. Opaco para o resto da app.
+    provider_payload: Any = field(default=None, compare=False, repr=False)
 
     @classmethod
     def user(cls, content: str) -> ChatMessage:
         return cls(Role.USER, content)
 
     @classmethod
-    def assistant(cls, content: str, tool_calls: tuple[ToolCall, ...] = ()) -> ChatMessage:
-        return cls(Role.ASSISTANT, content, tool_calls=tool_calls)
+    def assistant(
+        cls, content: str, tool_calls: tuple[ToolCall, ...] = (), *, provider_payload: Any = None
+    ) -> ChatMessage:
+        return cls(
+            Role.ASSISTANT, content, tool_calls=tool_calls, provider_payload=provider_payload
+        )
+
+    @classmethod
+    def from_result(cls, result: GenerationResult) -> ChatMessage:
+        """A resposta de um modelo, pronta a entrar no histórico da conversa."""
+        return cls.assistant(
+            result.text, result.tool_calls, provider_payload=result.provider_payload
+        )
 
     @classmethod
     def tool_result(cls, tool_call_id: str, content: str, *, is_error: bool = False) -> ChatMessage:
@@ -97,7 +111,7 @@ class GenerationRequest:
     tools: tuple[ToolSpec, ...] = ()
     tool_choice: ToolChoice = field(default_factory=ToolChoice)
     temperature: float | None = None
-    max_output_tokens: int = 2048
+    max_output_tokens: int = 8192
 
 
 @dataclass(frozen=True, slots=True)
@@ -112,6 +126,7 @@ class StopReason(StrEnum):
     END = "end"  # o modelo terminou naturalmente
     TOOL_USE = "tool_use"  # parou para pedir ferramentas
     MAX_TOKENS = "max_tokens"  # atingiu o limite de tokens de saída
+    REFUSAL = "refusal"  # o modelo recusou responder
     OTHER = "other"
 
 
@@ -122,6 +137,7 @@ class GenerationResult:
     usage: Usage
     stop_reason: StopReason
     model: str  # modelo efetivamente usado (pode diferir do pedido)
+    provider_payload: Any = field(default=None, compare=False, repr=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -183,6 +199,7 @@ class ProviderErrorKind(StrEnum):
     TIMEOUT = "timeout"
     UNAVAILABLE = "unavailable"  # servidor em baixo / 5xx / sem ligação
     BAD_REQUEST = "bad_request"  # pedido inválido (400)
+    QUOTA = "quota"  # sem créditos / quota esgotada (não adianta repetir)
     INVALID_OUTPUT = "invalid_output"  # resposta que não conseguimos interpretar
     UNKNOWN = "unknown"
 
