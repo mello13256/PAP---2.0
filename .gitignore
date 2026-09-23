@@ -25,3 +25,10 @@ workspaces/
 .vscode/
 .idea/
 .DS_Store
+
+# Base de dados local
+backend/data/
+*.db
+*.db-shm
+*.db-wal
+*.egg-info/
