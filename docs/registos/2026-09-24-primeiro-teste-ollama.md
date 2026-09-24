@@ -27,3 +27,27 @@ NVIDIA GeForce RTX 5070 Laptop GPU (8 GB VRAM). Ollama 0.34.4.
 - `app.cli ping --tools` passou a usar um prompt que pede a ferramenta e avisa quando
   ela não é chamada.
 - Próximo teste: repetir com estas alterações.
+
+---
+
+## Segundo teste (depois das alterações)
+
+Prompt: "Qual é a capital de Portugal? Responde usando a ferramenta submit_answer."
+
+| Modelo | Tokens | Latência | Resultado |
+|--------|--------|----------|-----------|
+| granite3.3:8b | 131 → 52 | 4,4 s | Escreveu a chamada **como texto JSON** (```python {"function_call": …}```), sem usar o mecanismo nativo |
+| qwen3:8b | 187 → 140 | 6,6 s | ✅ Chamada **nativa**: `submit_answer({'answer': 'A capital de Portugal é Lisboa.', 'confidence': 0.99})` |
+| granite3.3:8b (repetição) | 131 → 52 | 4,4 s | Igual ao primeiro: comportamento consistente |
+
+### Conclusões
+- Com o modelo já na GPU, a latência cai de ~47 s para **~4–7 s**.
+- O pedido por instrução resolveu o Qwen3.
+- O Granite percebe a ferramenta e produz os argumentos corretos, mas no formato
+  errado. **Não é falta de capacidade, é o formato de saída.**
+
+### Ação tomada
+Nova camada de **recuperação de chamadas escritas como texto**
+(`providers/text_tool_calls.py`, DT-09). O teste automático usa a resposta real do
+Granite. As chamadas recuperadas ficam marcadas (`tool_calls_from_text`) para
+poderem ser contadas nas experiências.

@@ -138,6 +138,8 @@ class GenerationResult:
     stop_reason: StopReason
     model: str  # modelo efetivamente usado (pode diferir do pedido)
     provider_payload: Any = field(default=None, compare=False, repr=False)
+    # True se as chamadas a ferramentas foram recuperadas do texto (ver text_tool_calls.py).
+    tool_calls_from_text: bool = False
 
 
 @dataclass(frozen=True, slots=True)

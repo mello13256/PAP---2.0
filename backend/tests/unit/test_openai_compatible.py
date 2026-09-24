@@ -257,3 +257,22 @@ async def test_no_tool_instruction_when_tools_are_optional() -> None:
     server = FakeServer(_stream_response([_chunk({"content": "ok"}, finish="stop")]))
     await _provider(server).generate(_request(tools=(WRITE_FILE,)))
     assert server.requests[0]["messages"][0] == {"role": "system", "content": "És o planner."}
+
+
+async def test_tool_call_written_as_text_is_recovered() -> None:
+    call = {"function_call": {"name": "write_file", "arguments": {"path": "a.py", "content": "x"}}}
+    text = f"```json\n{json.dumps(call)}\n```"
+    server = FakeServer(_stream_response([_chunk({"content": text}, finish="stop")]))
+    result = await _provider(server).generate(_request(tools=(WRITE_FILE,)))
+    assert result.tool_calls_from_text is True
+    assert result.stop_reason is StopReason.TOOL_USE
+    assert result.tool_calls[0].arguments == {"path": "a.py", "content": "x"}
+
+
+async def test_text_recovery_can_be_disabled() -> None:
+    text = '{"name": "write_file", "arguments": {"path": "a.py", "content": "x"}}'
+    server = FakeServer(_stream_response([_chunk({"content": text}, finish="stop")]))
+    result = await _provider(server, recover_text_tool_calls=False).generate(
+        _request(tools=(WRITE_FILE,))
+    )
+    assert result.tool_calls == ()

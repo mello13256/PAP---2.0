@@ -43,6 +43,7 @@ from app.providers.base import (
     Usage,
     parse_tool_arguments,
 )
+from app.providers.text_tool_calls import extract_tool_calls
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,6 +54,8 @@ class OpenAICompatibleOptions:
     # Pedir a contagem de tokens no fim do stream (stream_options.include_usage).
     stream_usage: bool = True
     supports_tools: bool = True
+    # Converter em chamadas reais o JSON de ferramentas escrito no texto (ex.: Granite).
+    recover_text_tool_calls: bool = True
     # Timeout HTTP (o AgentRuntime tem o seu próprio timeout de inatividade).
     timeout_s: float = 600.0
 
@@ -206,6 +209,15 @@ class OpenAICompatibleProvider(LLMProvider):
             calls.append(call)
             yield ToolCallCompleted(call)
 
+        text = "".join(text_parts)
+        from_text = False
+        if not calls and request.tools and self._options.recover_text_tool_calls:
+            calls = extract_tool_calls(text, (tool.name for tool in request.tools))
+            from_text = bool(calls)
+            for call in calls:
+                yield ToolCallStarted(call.id, call.name)
+                yield ToolCallCompleted(call)
+
         stop_reason = _FINISH_REASONS.get(finish_reason or "", StopReason.OTHER)
         if calls:
             # Alguns servidores (ex.: Ollama) indicam "stop" mesmo quando pedem ferramentas.
@@ -213,11 +225,12 @@ class OpenAICompatibleProvider(LLMProvider):
 
         yield StreamCompleted(
             GenerationResult(
-                text="".join(text_parts),
+                text=text,
                 tool_calls=tuple(calls),
                 usage=usage,
                 stop_reason=stop_reason,
                 model=model,
+                tool_calls_from_text=from_text,
             )
         )
 

@@ -83,6 +83,8 @@ async def _ping(provider_key: str, model: str, prompt: str, use_tools: bool) -> 
             print(f"\n→ ferramenta {event.tool_call.name}({event.tool_call.arguments})", end="")
         elif isinstance(event, StreamCompleted):
             print()
+            if event.result.tool_calls_from_text:
+                print("  (chamada recuperada do texto: o modelo escreveu-a em JSON)")
 
     if use_tools and not called_tool:
         print("  AVISO: o modelo respondeu com texto e NÃO chamou a ferramenta.")

@@ -141,3 +141,24 @@ no histórico de uma conversa com ferramentas.
 **Decisão.** `GenerationResult` e `ChatMessage` têm um campo `provider_payload` opaco.
 Só o provider que o criou o interpreta; os outros ignoram-no. A abstração continua
 genérica e não fica a conhecer os detalhes da Anthropic.
+
+---
+
+## DT-09 — Recuperar chamadas a ferramentas escritas como texto
+
+**Contexto.** No teste real (docs/registos/2026-09-24-primeiro-teste-ollama.md), o
+IBM Granite 3.3 8B escreveu a chamada à ferramenta como JSON no texto em vez de
+usar o mecanismo nativo. O Qwen3 8B usou o mecanismo nativo.
+
+**Decisão.** Quando um modelo não usa o mecanismo nativo, o provider procura no
+texto um objeto JSON que corresponda a uma ferramenta **declarada** e converte-o
+numa chamada real.
+
+**Salvaguardas.**
+- Só são aceites ferramentas declaradas no pedido: o modelo não pode inventar ferramentas.
+- Os argumentos têm de ser um objeto JSON e continuam a ser validados antes da execução.
+- A recuperação fica registada (`tool_calls_from_text`) e pode ser desligada por
+  fornecedor (`recover_text_tool_calls`).
+
+**Consequência para as experiências.** "Percentagem de chamadas recuperadas do
+texto" passa a ser uma métrica possível para comparar modelos.
