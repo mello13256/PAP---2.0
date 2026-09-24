@@ -43,7 +43,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         if settings.secret_key_was_generated:
-            logger.warning("SECRET_KEY não definida: a usar uma chave temporária.")
+            logger.warning(
+                "SECRET_KEY não definida no .env: a usar a chave local de desenvolvimento."
+            )
         if settings.auto_migrate:
             # O Alembic usa o seu próprio event loop, por isso corre numa thread à parte.
             await asyncio.to_thread(upgrade_to_head, settings.database_url)

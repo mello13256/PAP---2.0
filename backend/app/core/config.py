@@ -82,8 +82,7 @@ class Settings(BaseSettings):
         if self.secret_key is None:
             if self.environment == "production":
                 raise ValueError("SECRET_KEY é obrigatória em produção")
-            # Chave temporária: as sessões deixam de ser válidas quando o servidor reinicia.
-            self.secret_key = SecretStr(secrets.token_urlsafe(48))
+            self.secret_key = SecretStr(_local_dev_secret(self.environment))
             self._generated_secret = True
         return self
 
@@ -104,6 +103,29 @@ class Settings(BaseSettings):
         if self.secret_key is not None:
             values.append(self.secret_key.get_secret_value())
         return [v for v in values if v]
+
+
+def _local_dev_secret(environment: str) -> str:
+    """Chave de desenvolvimento gerada uma vez e guardada em backend/data/ (fora do Git).
+
+    Assim as sessões continuam válidas quando o servidor reinicia. Nos testes é
+    sempre temporária, para não tocar no disco.
+    """
+    if environment == "test":
+        return secrets.token_urlsafe(48)
+    path = BACKEND_DIR / "data" / "dev_secret_key"
+    try:
+        if path.exists():
+            value = path.read_text(encoding="utf-8").strip()
+            if len(value) >= 32:
+                return value
+        path.parent.mkdir(parents=True, exist_ok=True)
+        value = secrets.token_urlsafe(48)
+        path.write_text(value, encoding="utf-8")
+        return value
+    except OSError:
+        logger.warning("Não foi possível guardar a chave de desenvolvimento; a usar uma temporária")
+        return secrets.token_urlsafe(48)
 
 
 @lru_cache

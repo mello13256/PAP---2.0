@@ -11,10 +11,16 @@ def test_empty_api_key_is_treated_as_not_configured() -> None:
     assert settings.openai_api_key is None
 
 
-def test_secret_key_is_generated_in_development() -> None:
-    settings = Settings(_env_file=None, environment="development")
-    assert settings.secret_key is not None
-    assert len(settings.secret_key.get_secret_value()) > 30
+def test_dev_secret_key_is_generated_once_and_reused(tmp_path, monkeypatch) -> None:
+    import app.core.config as config
+
+    monkeypatch.setattr(config, "BACKEND_DIR", tmp_path)
+    first = Settings(_env_file=None, environment="development", database_url="sqlite://")
+    second = Settings(_env_file=None, environment="development", database_url="sqlite://")
+    assert len(first.secret_key.get_secret_value()) > 30
+    # O mesmo valor depois de "reiniciar": as sessões continuam válidas.
+    assert first.secret_key.get_secret_value() == second.secret_key.get_secret_value()
+    assert (tmp_path / "data" / "dev_secret_key").exists()
 
 
 def test_secret_key_is_required_in_production() -> None:
