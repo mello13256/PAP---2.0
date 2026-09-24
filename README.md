@@ -19,7 +19,8 @@ Projeto desenvolvido no âmbito da PAP (Prova de Aptidão Profissional).
 | 4 | Abstração de providers + AgentRuntime + métricas | ✅ |
 | 5 | Provider compatível OpenAI (OpenAI, Ollama, GitHub Models, Gemini, Groq) | ✅ |
 | 6 | Provider Anthropic | ✅ |
-| 7 | Agentes, mensagens, eventos em tempo real | ⏳ |
+| 7 | Agentes, mensagens, eventos em tempo real | ✅ |
+| 8 | Workspace partilhado e versionamento | ⏳ |
 
 - Explicação de cada fase: [`docs/fases/`](docs/fases/)
 - Decisões de projeto: [`docs/decisoes-tecnicas.md`](docs/decisoes-tecnicas.md)

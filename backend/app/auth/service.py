@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.service import create_default_agents
 from app.auth.models import User
 from app.auth.schemas import RegisterRequest
 from app.auth.security import hash_password, verify_password
@@ -26,6 +27,8 @@ async def register_user(session: AsyncSession, data: RegisterRequest) -> User:
     )
     session.add(user)
     await session.commit()
+    # Cada utilizador novo começa com os agentes pré-definidos (Granite, Qwen, Simulado).
+    await create_default_agents(session, user)
     return user
 
 

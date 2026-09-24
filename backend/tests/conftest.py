@@ -65,3 +65,21 @@ async def register(client: AsyncClient, email: str = "ana@example.com") -> dict:
 async def auth_client(client: AsyncClient) -> AsyncClient:
     await register(client)
     return client
+
+
+def use_providers(app: FastAPI, **providers) -> None:
+    """Substitui os providers da app (ex.: um FakeProvider a fazer de "ollama")."""
+    from app.agents.factory import RuntimeFactory
+    from app.agents.runtime import RetryPolicy
+    from app.providers.registry import ProviderRegistry
+
+    registry = ProviderRegistry()
+    for key, provider in providers.items():
+        registry.register(key, provider)
+    app.state.providers = registry
+    app.state.runtime_factory = RuntimeFactory(
+        registry,
+        app.state.call_recorder,
+        app.state.pricing,
+        RetryPolicy(max_attempts=1),
+    )
