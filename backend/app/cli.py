@@ -68,6 +68,7 @@ async def _ping(provider_key: str, model: str, prompt: str, use_tools: bool) -> 
         recorder=recorder,
         pricing=PricingTable.from_file(BACKEND_DIR / "pricing.json"),
     )
+    called_tool = False
     print(f"[{runtime.spec.name}] ", end="", flush=True)
     async for event in runtime.stream(
         [ChatMessage.user(prompt)],
@@ -78,10 +79,13 @@ async def _ping(provider_key: str, model: str, prompt: str, use_tools: bool) -> 
         if isinstance(event, TextDelta):
             print(event.text, end="", flush=True)
         elif isinstance(event, ToolCallCompleted):
+            called_tool = True
             print(f"\n→ ferramenta {event.tool_call.name}({event.tool_call.arguments})", end="")
         elif isinstance(event, StreamCompleted):
             print()
 
+    if use_tools and not called_tool:
+        print("  AVISO: o modelo respondeu com texto e NÃO chamou a ferramenta.")
     for record in recorder.records:
         cost = "—" if record.estimated_cost_usd is None else f"${record.estimated_cost_usd:.6f}"
         print(
@@ -103,7 +107,7 @@ def main(argv: list[str] | None = None) -> int:
     ping = sub.add_parser("ping", help="envia uma mensagem de teste a um modelo")
     ping.add_argument("--provider", required=True)
     ping.add_argument("--model", required=True)
-    ping.add_argument("--prompt", default="Apresenta-te numa frase, em português.")
+    ping.add_argument("--prompt", default=None)
     ping.add_argument("--tools", action="store_true", help="testa o uso de ferramentas")
     args = parser.parse_args(argv)
 
@@ -112,7 +116,12 @@ def main(argv: list[str] | None = None) -> int:
             return asyncio.run(_providers())
         if args.command == "models":
             return asyncio.run(_models(args.provider))
-        return asyncio.run(_ping(args.provider, args.model, args.prompt, args.tools))
+        prompt = args.prompt or (
+            "Qual é a capital de Portugal? Responde usando a ferramenta submit_answer."
+            if args.tools
+            else "Apresenta-te numa frase, em português."
+        )
+        return asyncio.run(_ping(args.provider, args.model, prompt, args.tools))
     except ProviderError as exc:
         print(f"\nERRO ({exc.kind}): {exc}", file=sys.stderr)
         return 1

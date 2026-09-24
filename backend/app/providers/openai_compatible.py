@@ -127,7 +127,7 @@ class OpenAICompatibleProvider(LLMProvider):
             )
         params: dict[str, Any] = {
             "model": request.model,
-            "messages": _convert_messages(request),
+            "messages": _convert_messages(request, _tool_instruction(request)),
             "stream": True,
             self._options.max_tokens_param: request.max_output_tokens,
         }
@@ -225,10 +225,33 @@ class OpenAICompatibleProvider(LLMProvider):
 # ---------------------------------------------------------------- conversões
 
 
-def _convert_messages(request: GenerationRequest) -> list[dict[str, Any]]:
+def _tool_instruction(request: GenerationRequest) -> str | None:
+    """Instrução explícita quando uma ferramenta é obrigatória.
+
+    Alguns servidores compatíveis (observado no Ollama) ignoram ``tool_choice``.
+    Repetir o pedido no system prompt não prejudica quem o respeita e ajuda quem
+    o ignora. Ver DT-07.
+    """
+    if not request.tools:
+        return None
+    choice = request.tool_choice
+    if choice.mode is ToolChoiceMode.SPECIFIC and choice.name:
+        return (
+            f"Nesta resposta tens de chamar a ferramenta `{choice.name}`. "
+            "Não respondas apenas com texto."
+        )
+    if choice.mode is ToolChoiceMode.REQUIRED:
+        return "Nesta resposta tens de chamar uma das ferramentas disponíveis."
+    return None
+
+
+def _convert_messages(
+    request: GenerationRequest, extra_system: str | None = None
+) -> list[dict[str, Any]]:
     messages: list[dict[str, Any]] = []
-    if request.system:
-        messages.append({"role": "system", "content": request.system})
+    system = "\n\n".join(p for p in (request.system, extra_system) if p)
+    if system:
+        messages.append({"role": "system", "content": system})
     for message in request.messages:
         if message.role is Role.USER:
             messages.append({"role": "user", "content": message.content})

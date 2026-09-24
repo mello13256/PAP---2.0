@@ -129,7 +129,10 @@ async def test_request_is_translated_to_the_openai_format() -> None:
     assert sent["stream_options"] == {"include_usage": True}
     assert sent["max_tokens"] == 256
     assert sent["temperature"] == 0.3
-    assert sent["messages"][0] == {"role": "system", "content": "És o planner."}
+    assert sent["messages"][0]["role"] == "system"
+    assert sent["messages"][0]["content"].startswith("És o planner.")
+    # Pedido repetido por instrução (servidores que ignoram tool_choice, ex.: Ollama).
+    assert "`write_file`" in sent["messages"][0]["content"]
     assert sent["messages"][2]["tool_calls"][0]["function"] == {
         "name": "write_file",
         "arguments": '{"path": "a.py"}',
@@ -248,3 +251,9 @@ async def test_list_models() -> None:
         )
     )
     assert await _provider(server).list_models() == ["granite3.3:2b", "llama3.2:3b"]
+
+
+async def test_no_tool_instruction_when_tools_are_optional() -> None:
+    server = FakeServer(_stream_response([_chunk({"content": "ok"}, finish="stop")]))
+    await _provider(server).generate(_request(tools=(WRITE_FILE,)))
+    assert server.requests[0]["messages"][0] == {"role": "system", "content": "És o planner."}
