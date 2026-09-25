@@ -1,0 +1,90 @@
+# Compila o MultiMind.exe num Windows real, testa-o e publica-o.
+#
+# Download da versão mais recente:
+#   https://github.com/mello13256/PAP---2.0/releases/tag/latest-build
+name: MultiMind.exe (Windows)
+
+on:
+  push:
+    branches: [claude/multimind-multiagent-platform-b4ux80, main]
+    paths: [backend/**, frontend/**, .github/workflows/windows-exe.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-exe-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Testes (Windows)
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - run: python -m pip install -e ".[dev]"
+      - run: python -m pytest -q
+
+  build:
+    name: Compilar e publicar MultiMind.exe
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Compilar a interface
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Compilar o executável
+        working-directory: backend
+        run: |
+          python -m pip install -e ".[desktop]"
+          python packaging/make_icon.py packaging
+          pyinstaller packaging/multimind.spec --noconfirm
+
+      - name: Teste de arranque do executável
+        working-directory: backend
+        run: |
+          $env:MULTIMIND_DATA_DIR = Join-Path $env:RUNNER_TEMP 'mm-smoke'
+          $p = Start-Process -FilePath 'dist\MultiMind.exe' -ArgumentList '--smoke-test', '--port', '8123' -Wait -PassThru
+          $log = Join-Path $env:MULTIMIND_DATA_DIR 'logs\multimind.log'
+          if (Test-Path $log) { Get-Content $log -Tail 15 }
+          if ($p.ExitCode -ne 0) { throw "O executável falhou o teste de arranque (código $($p.ExitCode))" }
+          (Get-Item 'dist\MultiMind.exe').Length / 1MB | ForEach-Object { "Tamanho: {0:N1} MB" -f $_ }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MultiMind-windows
+          path: backend/dist/MultiMind.exe
+
+      - name: Publicar como "versão mais recente"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          try { gh release delete latest-build --yes --cleanup-tag } catch { }
+          $notes = "Compilado automaticamente a partir de $env:GITHUB_SHA.`n`n" +
+                   "1. Descarrega MultiMind.exe e faz duplo clique.`n" +
+                   "2. Precisa do Ollama (https://ollama.com) com pelo menos um modelo; os modelos descarregam-se dentro da aplicação (página Modelos).`n" +
+                   "3. Os dados ficam em %LOCALAPPDATA%\MultiMind."
+          gh release create latest-build backend/dist/MultiMind.exe --title "MultiMind — versão mais recente" --notes $notes --target $env:GITHUB_SHA

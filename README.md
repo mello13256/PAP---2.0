@@ -32,7 +32,13 @@ Projeto desenvolvido no âmbito da PAP (Prova de Aptidão Profissional).
 - Decisões de projeto: [`docs/decisoes-tecnicas.md`](docs/decisoes-tecnicas.md)
 - Instalação no Windows: [`docs/guia-instalacao-windows.md`](docs/guia-instalacao-windows.md)
 
-## Arranque rápido (Windows)
+## Descarregar (Windows)
+
+**[MultiMind.exe — versão mais recente](https://github.com/mello13256/PAP---2.0/releases/tag/latest-build)**:
+duplo clique e pronto. Precisa do [Ollama](https://ollama.com); os modelos descarregam-se
+dentro da aplicação (página **Modelos**). Funciona sem internet depois disso.
+
+## Arranque a partir do código (Windows)
 
 **Duplo clique em `iniciar.cmd`**: prepara tudo e abre http://127.0.0.1:8000.
 
