@@ -1,3 +1,5 @@
+import uuid
+
 from sqlalchemy import select
 
 from app.metrics.models import CallPurpose, LLMCall
@@ -118,3 +120,35 @@ async def test_ping_reports_errors_without_crashing(app, auth_client) -> None:
 async def test_providers_endpoint(auth_client) -> None:
     keys = [p["key"] for p in (await auth_client.get("/api/providers")).json()]
     assert "fake" in keys
+
+
+async def test_duplicate_agents_are_cleaned_up(app, auth_client) -> None:
+    from app.agents.models import Agent
+    from app.agents.service import remove_duplicate_agents
+
+    use_providers(app, ollama=FakeProvider([FakeResponse(text="olá")]))
+    originals = (await auth_client.get("/api/agents")).json()
+    # Simula o problema antigo: os pré-definidos criados duas vezes.
+    async with app.state.db.sessionmaker() as session:
+        owner = (await session.get(Agent, uuid.UUID(originals[0]["id"]))).owner_id
+        for spec in originals:
+            session.add(
+                Agent(
+                    owner_id=owner,
+                    name=spec["name"],
+                    provider=spec["provider"],
+                    model=spec["model"],
+                    capabilities=spec["capabilities"],
+                    system_prompt=spec["system_prompt"],
+                    config=spec["config"],
+                    enabled=spec["enabled"],
+                )
+            )
+        await session.commit()
+    assert len((await auth_client.get("/api/agents")).json()) == 6
+
+    async with app.state.db.sessionmaker() as session:
+        assert await remove_duplicate_agents(session) == 3
+
+    after = (await auth_client.get("/api/agents")).json()
+    assert [a["id"] for a in after] == [a["id"] for a in originals]  # ficam os mais antigos

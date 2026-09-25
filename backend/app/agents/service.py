@@ -155,3 +155,29 @@ async def remove_agent(session: AsyncSession, agent: Agent) -> bool:
     await session.delete(agent)
     await session.commit()
     return True
+
+
+async def remove_duplicate_agents(session: AsyncSession) -> int:
+    """Arrumação no arranque: agentes repetidos (mesmo dono, nome, fornecedor e modelo).
+
+    Fica o mais antigo. Os repetidos nunca usados são apagados; os que já têm
+    histórico ficam desativados (para não participarem duas vezes num run).
+    Devolve quantos foram tratados.
+    """
+    agents = list(await session.scalars(select(Agent).order_by(Agent.created_at, Agent.id)))
+    seen: set[tuple] = set()
+    handled = 0
+    for agent in agents:
+        key = (agent.owner_id, agent.name.strip().lower(), agent.provider, agent.model)
+        if key not in seen:
+            seen.add(key)
+            continue
+        if await is_agent_used(session, agent.id):
+            if agent.enabled:
+                agent.enabled = False
+                handled += 1
+        else:
+            await session.delete(agent)
+            handled += 1
+    await session.commit()
+    return handled

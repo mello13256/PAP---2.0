@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from app import __version__
 from app.agents import router as agents_router
 from app.agents.factory import RuntimeFactory
+from app.agents.service import remove_duplicate_agents
 from app.api import health
 from app.auth import router as auth_router
 from app.core.background import BackgroundTasks
@@ -55,6 +56,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             # O Alembic usa o seu próprio event loop, por isso corre numa thread à parte.
             await asyncio.to_thread(upgrade_to_head, settings.database_url)
         await app.state.run_manager.recover_interrupted()
+        async with db.sessionmaker() as session:
+            removed = await remove_duplicate_agents(session)
+        if removed:
+            logger.info("Agentes repetidos arrumados: %d", removed)
         logger.info("MultiMind %s a arrancar (%s)", __version__, settings.environment)
         yield
         await app.state.background.cancel_all()
