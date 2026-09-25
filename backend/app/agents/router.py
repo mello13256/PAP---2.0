@@ -11,6 +11,7 @@ from app.agents.models import Agent
 from app.agents.schemas import (
     AgentCreate,
     AgentOut,
+    AgentRemoved,
     AgentUpdate,
     PingRequest,
     PingResult,
@@ -91,11 +92,18 @@ async def update_agent(
     return _out(await service.update_agent(session, agent, data, registry), registry)
 
 
-@router.delete("/agents/{agent_id}", response_model=AgentOut)
-async def disable_agent(agent: OwnedAgent, session: SessionDep, registry: RegistryDep) -> AgentOut:
-    """Desativa (não apaga): o histórico de mensagens e versões continua a apontar para ele."""
-    updated = await service.update_agent(session, agent, AgentUpdate(enabled=False), registry)
-    return _out(updated, registry)
+@router.delete("/agents/{agent_id}", response_model=AgentRemoved)
+async def remove_agent(
+    agent: OwnedAgent, session: SessionDep, registry: RegistryDep
+) -> AgentRemoved:
+    """Remove um agente.
+
+    Se nunca participou em nada é apagado. Se já participou, é apenas desativado,
+    para que o histórico (mensagens, versões, revisões) continue a saber quem foi.
+    """
+    if await service.remove_agent(session, agent):
+        return AgentRemoved(deleted=True)
+    return AgentRemoved(deleted=False, agent=_out(agent, registry))
 
 
 @router.post("/agents/{agent_id}/ping", response_model=PingResult)

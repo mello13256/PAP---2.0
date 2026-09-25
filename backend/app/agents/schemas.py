@@ -77,3 +77,8 @@ class PingResult(BaseModel):
 class ProviderOut(BaseModel):
     key: str
     supports_listing_models: bool = True
+
+
+class AgentRemoved(BaseModel):
+    deleted: bool  # True = apagado; False = já tinha sido usado, por isso foi só desativado
+    agent: AgentOut | None = None

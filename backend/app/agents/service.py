@@ -119,3 +119,39 @@ async def ping_agent(agent: Agent, factory: RuntimeFactory, prompt: str) -> Ping
         input_tokens=result.usage.input_tokens,
         output_tokens=result.usage.output_tokens,
     )
+
+
+async def is_agent_used(session: AsyncSession, agent_id: uuid.UUID) -> bool:
+    """O agente aparece em algum histórico (tarefas, mensagens, versões, revisões, chamadas)?"""
+    from app.messages.models import Message
+    from app.metrics.models import LLMCall
+    from app.reviews.models import Review
+    from app.tasks.models import Task
+    from app.workspace.models import ArtifactVersion
+
+    checks = [
+        select(Task.id).where(Task.assigned_agent_id == agent_id),
+        select(Message.id).where(
+            (Message.sender_agent_id == agent_id) | (Message.recipient_agent_id == agent_id)
+        ),
+        select(ArtifactVersion.id).where(ArtifactVersion.author_agent_id == agent_id),
+        select(Review.id).where(
+            (Review.reviewer_agent_id == agent_id) | (Review.author_agent_id == agent_id)
+        ),
+        select(LLMCall.id).where(LLMCall.agent_id == agent_id),
+    ]
+    for query in checks:
+        if await session.scalar(query.limit(1)) is not None:
+            return True
+    return False
+
+
+async def remove_agent(session: AsyncSession, agent: Agent) -> bool:
+    """Apaga o agente se nunca foi usado; caso contrário desativa-o. Devolve True se apagou."""
+    if await is_agent_used(session, agent.id):
+        agent.enabled = False
+        await session.commit()
+        return False
+    await session.delete(agent)
+    await session.commit()
+    return True

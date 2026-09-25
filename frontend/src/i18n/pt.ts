@@ -153,6 +153,9 @@ export const pt = {
     new: 'Novo agente',
     name: 'Nome',
     installedModels: 'Modelos instalados',
+    remove: 'Remover',
+    confirmRemove: 'Remover este agente? Se já participou em execuções, fica apenas desativado (o histórico é mantido).',
+    keptDisabled: 'Este agente já tem histórico: foi desativado em vez de apagado.',
     restoreDefaults: 'Repor agentes pré-definidos',
   },
 }

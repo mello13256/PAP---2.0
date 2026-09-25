@@ -201,3 +201,11 @@ export function useRestoreDefaultAgents() {
 
 export const usePingAgent = () =>
   useMutation({ mutationFn: (id: string) => api.post<PingResult>(`/agents/${id}/ping`) })
+
+export function useRemoveAgent() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete<{ deleted: boolean; agent: Agent | null }>(`/agents/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.agents }),
+  })
+}

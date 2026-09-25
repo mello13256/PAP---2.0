@@ -43,8 +43,20 @@ async def test_create_update_and_disable_agent(auth_client) -> None:
     assert updated.json()["capabilities"] == ["testing"]
     assert updated.json()["config"]["temperature"] == 0.1  # não foi apagado
 
-    disabled = await auth_client.delete(f"/api/agents/{agent['id']}")
-    assert disabled.json()["enabled"] is False
+    # Nunca foi usado → é apagado.
+    removed = await auth_client.delete(f"/api/agents/{agent['id']}")
+    assert removed.json() == {"deleted": True, "agent": None}
+    assert (await auth_client.get(f"/api/agents/{agent['id']}")).status_code == 404
+
+
+async def test_used_agents_are_only_disabled(app, auth_client) -> None:
+    use_providers(app, ollama=FakeProvider([FakeResponse(text="olá")]))
+    granite = (await auth_client.get("/api/agents")).json()[0]
+    await auth_client.post(f"/api/agents/{granite['id']}/ping")  # fica nas métricas
+
+    removed = (await auth_client.delete(f"/api/agents/{granite['id']}")).json()
+    assert removed["deleted"] is False
+    assert removed["agent"]["enabled"] is False
 
 
 async def test_agent_validation(auth_client) -> None:

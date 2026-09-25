@@ -151,6 +151,9 @@ export const en: Dictionary = {
     new: 'New agent',
     name: 'Name',
     installedModels: 'Installed models',
+    remove: 'Remove',
+    confirmRemove: 'Remove this agent? If it already took part in runs, it is only disabled (history is kept).',
+    keptDisabled: 'This agent has history: it was disabled instead of deleted.',
     restoreDefaults: 'Restore default agents',
   },
 }

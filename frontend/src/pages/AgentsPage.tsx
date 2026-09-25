@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { api } from '../api/client'
-import { useAgents, useCreateAgent, usePingAgent, useProviderModels, useRestoreDefaultAgents, useUpdateAgent } from '../api/hooks'
+import { useAgents, useCreateAgent, usePingAgent, useProviderModels, useRemoveAgent, useRestoreDefaultAgents, useUpdateAgent } from '../api/hooks'
 import type { Agent, PingResult } from '../api/types'
 import { AgentName, Badge, Button, Card, ErrorBox, Field, Input, Loading, Select, Textarea, cx } from '../components/ui'
 import { useQuery } from '@tanstack/react-query'
@@ -139,6 +139,7 @@ function AgentCard({ agent, index }: { agent: Agent; index: number }) {
   const t = useT()
   const [editing, setEditing] = useState(false)
   const ping = usePingAgent()
+  const remove = useRemoveAgent()
   return (
     <Card className={cx(!agent.enabled && 'opacity-70')}>
       <div className="flex flex-wrap items-start gap-3 p-4">
@@ -160,8 +161,19 @@ function AgentCard({ agent, index }: { agent: Agent; index: number }) {
             {ping.isPending ? t.agents.testing : t.agents.test}
           </Button>
           <Button variant="secondary" onClick={() => setEditing((e) => !e)}>{t.agents.edit}</Button>
+          <Button
+            variant="danger"
+            loading={remove.isPending}
+            onClick={() => confirm(t.agents.confirmRemove) && remove.mutate(agent.id)}
+          >
+            {t.agents.remove}
+          </Button>
         </div>
       </div>
+      {remove.data && !remove.data.deleted && (
+        <p className="border-t border-amber-100 bg-amber-50 px-4 py-2 text-xs text-amber-800">{t.agents.keptDisabled}</p>
+      )}
+      {remove.error && <div className="px-4 pb-3"><ErrorBox error={remove.error} /></div>}
       {ping.data && <PingBox result={ping.data} />}
       {editing && <AgentForm agent={agent} onDone={() => setEditing(false)} />}
     </Card>

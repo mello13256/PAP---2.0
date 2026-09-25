@@ -38,6 +38,9 @@ logger = logging.getLogger(__name__)
 
 
 async def set_run_status(ctx: RunContext, status: RunStatus, **fields) -> None:
+    # Se o utilizador pausou entretanto, o orquestrador não pode "despausar" o run.
+    if status is RunStatus.RUNNING and ctx.control.paused:
+        status = RunStatus.PAUSED
     async with ctx.sessionmaker() as session:
         run = await session.get(Run, ctx.run_id)
         run.status = status
