@@ -7,7 +7,9 @@ async def _project(client) -> dict:
 
 
 async def _run(client, project_id: str, objective: str = "Criar uma app de inventário") -> dict:
-    response = await client.post(f"/api/projects/{project_id}/runs", json={"objective": objective})
+    response = await client.post(
+        f"/api/projects/{project_id}/runs", json={"objective": objective, "autostart": False}
+    )
     assert response.status_code == 201, response.text
     return response.json()
 

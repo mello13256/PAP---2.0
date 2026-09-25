@@ -83,3 +83,15 @@ Sem placa gráfica dedicada os modelos correm no CPU: funcionam, mas mais devaga
 
 O nome exato dos modelos disponíveis está em https://ollama.com/library
 (procura "granite").
+
+## 6. Janela de contexto do Ollama (importante)
+
+Por defeito o Ollama pode usar uma janela de contexto pequena e **cortar em silêncio**
+os prompts longos que o orquestrador envia. Define uma janela maior **uma vez**:
+
+```powershell
+setx OLLAMA_CONTEXT_LENGTH 8192
+```
+
+Depois fecha o Ollama (ícone junto ao relógio → Quit) e volta a abri-lo. Com 8 GB de
+VRAM, 8192 é um bom equilíbrio. Valores maiores ocupam mais memória da GPU.

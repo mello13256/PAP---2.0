@@ -24,11 +24,11 @@ def settings(tmp_path) -> Settings:
 @pytest.fixture
 async def app(settings: Settings) -> AsyncIterator[FastAPI]:
     application = create_app(settings)
+    # Nos testes as tabelas são criadas diretamente a partir dos modelos (mais rápido);
+    # tests/unit/test_migrations.py garante que as migrações produzem o mesmo esquema.
+    async with application.state.db.engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     async with application.router.lifespan_context(application):
-        # Nos testes as tabelas são criadas diretamente a partir dos modelos (mais rápido);
-        # tests/unit/test_migrations.py garante que as migrações produzem o mesmo esquema.
-        async with application.state.db.engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
         yield application
 
 
@@ -83,3 +83,4 @@ def use_providers(app: FastAPI, **providers) -> None:
         app.state.pricing,
         RetryPolicy(max_attempts=1),
     )
+    app.state.run_manager.factory = app.state.runtime_factory

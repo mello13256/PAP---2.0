@@ -27,10 +27,13 @@ from app.db.session import Database
 from app.events.bus import EventBus
 from app.messages import router as messages_router
 from app.metrics.recorder import DatabaseCallRecorder
+from app.orchestration.run_manager import RunManager
 from app.projects import router as projects_router
 from app.providers.pricing import PricingTable
 from app.providers.setup import build_registry
 from app.runs import router as runs_router
+from app.tasks import router as tasks_router
+from app.workspace import router as workspace_router
 
 logger = logging.getLogger("multimind")
 
@@ -49,6 +52,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if settings.auto_migrate:
             # O Alembic usa o seu próprio event loop, por isso corre numa thread à parte.
             await asyncio.to_thread(upgrade_to_head, settings.database_url)
+        await app.state.run_manager.recover_interrupted()
         logger.info("MultiMind %s a arrancar (%s)", __version__, settings.environment)
         yield
         await app.state.background.cancel_all()
@@ -71,6 +75,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.bus = EventBus(db.sessionmaker)
     app.state.background = BackgroundTasks()
+    app.state.run_manager = RunManager(
+        db.sessionmaker,
+        app.state.bus,
+        app.state.runtime_factory,
+        app.state.background,
+        settings.workspaces_dir,
+    )
     register_error_handlers(app)
 
     app.include_router(health.router, prefix="/api")
@@ -79,6 +90,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(agents_router.router, prefix="/api")
     app.include_router(runs_router.router, prefix="/api")
     app.include_router(messages_router.router, prefix="/api")
+    app.include_router(tasks_router.router, prefix="/api")
+    app.include_router(workspace_router.router, prefix="/api")
     return app
 
 

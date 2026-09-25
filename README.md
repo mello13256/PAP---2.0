@@ -20,7 +20,11 @@ Projeto desenvolvido no âmbito da PAP (Prova de Aptidão Profissional).
 | 5 | Provider compatível OpenAI (OpenAI, Ollama, GitHub Models, Gemini, Groq) | ✅ |
 | 6 | Provider Anthropic | ✅ |
 | 7 | Agentes, mensagens, eventos em tempo real | ✅ |
-| 8 | Workspace partilhado e versionamento | ⏳ |
+| 8 | Workspace partilhado e versionamento | ✅ |
+| 9 | Tarefas e grafo de dependências | ✅ |
+| 10 | Orquestrador (planear, atribuir, executar, limites) | ✅ |
+| 11 | Sistema de revisão | ✅ |
+| 13 | Interface web | ⏳ |
 
 - Explicação de cada fase: [`docs/fases/`](docs/fases/)
 - Decisões de projeto: [`docs/decisoes-tecnicas.md`](docs/decisoes-tecnicas.md)
@@ -37,6 +41,7 @@ pip install -e ".[dev]"
 pytest
 uvicorn app.main:app --reload       # API em http://127.0.0.1:8000/docs
 python -m app.cli providers         # providers configurados
+python -m app.cli run "Cria uma app de inventário"   # os agentes a trabalhar
 ```
 
 ## Segurança

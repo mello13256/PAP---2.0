@@ -6,6 +6,7 @@ Exemplos (dentro de backend/, com o ambiente virtual ativo):
     python -m app.cli models --provider ollama
     python -m app.cli ping --provider ollama --model granite3.3:2b
     python -m app.cli ping --provider ollama --model granite3.3:2b --tools
+    python -m app.cli run "Cria uma app de inventário"
 """
 
 from __future__ import annotations
@@ -111,7 +112,24 @@ def main(argv: list[str] | None = None) -> int:
     ping.add_argument("--model", required=True)
     ping.add_argument("--prompt", default=None)
     ping.add_argument("--tools", action="store_true", help="testa o uso de ferramentas")
+    run = sub.add_parser("run", help="põe os agentes a trabalhar num objetivo (tempo real)")
+    run.add_argument("objective", help='ex.: "Cria uma app de inventário"')
+    run.add_argument(
+        "--strategy",
+        default="collaborative",
+        help="collaborative | plan_implement_review | single | single_no_review",
+    )
+    run.add_argument("--agents", help="nomes dos agentes, por ordem, ex.: Granite,Qwen")
+    run.add_argument(
+        "--project", default="Terminal", help="nome do projeto (criado se não existir)"
+    )
+    run.add_argument("--email", help="conta a usar (se houver várias)")
     args = parser.parse_args(argv)
+
+    if args.command == "run":
+        from app.cli_run import main as run_main
+
+        return run_main(args)
 
     try:
         if args.command == "providers":
