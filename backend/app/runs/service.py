@@ -75,3 +75,14 @@ async def get_run(session: AsyncSession, user: User, run_id: uuid.UUID) -> Run:
     if row is None or row.owner_id != user.id:
         raise NotFoundError("Execução não encontrada")
     return row.Run
+
+
+async def recent_runs(session: AsyncSession, user: User, limit: int = 10) -> list[tuple[Run, str]]:
+    rows = await session.execute(
+        select(Run, Project.name)
+        .join(Project, Project.id == Run.project_id)
+        .where(Project.owner_id == user.id)
+        .order_by(Run.created_at.desc())
+        .limit(limit)
+    )
+    return [(run, name) for run, name in rows.all()]

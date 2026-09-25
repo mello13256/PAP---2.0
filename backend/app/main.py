@@ -12,6 +12,8 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app import __version__
 from app.agents import router as agents_router
@@ -20,7 +22,7 @@ from app.api import health
 from app.auth import router as auth_router
 from app.core.background import BackgroundTasks
 from app.core.config import BACKEND_DIR, Settings, get_settings
-from app.core.errors import register_error_handlers
+from app.core.errors import NotFoundError, register_error_handlers
 from app.core.logging import configure_logging
 from app.db.migrations import upgrade_to_head
 from app.db.session import Database
@@ -92,7 +94,32 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(messages_router.router, prefix="/api")
     app.include_router(tasks_router.router, prefix="/api")
     app.include_router(workspace_router.router, prefix="/api")
+    _serve_frontend(app)
     return app
+
+
+FRONTEND_DIST = BACKEND_DIR.parent / "frontend" / "dist"
+
+
+def _serve_frontend(app: FastAPI) -> None:
+    """Serve a interface compilada (frontend/dist) no mesmo endereço da API.
+
+    Assim basta um servidor e um endereço (http://127.0.0.1:8000). Qualquer rota
+    que não seja /api devolve o index.html (a navegação é feita pelo React).
+    """
+    index = FRONTEND_DIST / "index.html"
+    if not index.exists():
+        return
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def spa(full_path: str) -> FileResponse:
+        if full_path.startswith("api/"):
+            raise NotFoundError("Endpoint não encontrado")
+        candidate = (FRONTEND_DIST / full_path).resolve()
+        if full_path and candidate.is_file() and candidate.is_relative_to(FRONTEND_DIST.resolve()):
+            return FileResponse(candidate)
+        return FileResponse(index)
 
 
 app = create_app()

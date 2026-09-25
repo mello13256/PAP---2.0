@@ -131,7 +131,7 @@ async def run_agent_loop(
                 text,
                 task_id=task_id,
                 sender_agent_id=agent.id,
-                meta={"label": label},
+                meta={"label": label, "turn_id": str(turn_id)},
             )
         messages.append(ChatMessage.from_result(result))
 

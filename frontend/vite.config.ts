@@ -1,10 +1,11 @@
+import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
 // Em desenvolvimento, o Vite reencaminha /api para o backend FastAPI.
 // Assim o browser vê tudo na mesma origem (cookies de sessão simples, sem CORS).
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
     proxy: {

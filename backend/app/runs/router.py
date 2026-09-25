@@ -12,7 +12,7 @@ from app.reviews import service as reviews_service
 from app.reviews.schemas import ReviewOut
 from app.runs import service
 from app.runs.dependencies import OwnedRun
-from app.runs.schemas import RunCreate, RunOut, StrategyOut
+from app.runs.schemas import RecentRunOut, RunCreate, RunOut, StrategyOut
 
 router = APIRouter(tags=["runs"])
 
@@ -22,6 +22,14 @@ async def list_strategies() -> list[StrategyOut]:
     return [
         StrategyOut(key=s.key, name=s.name, description=s.description, min_agents=s.min_agents)
         for s in STRATEGIES.values()
+    ]
+
+
+@router.get("/runs/recent", response_model=list[RecentRunOut])
+async def recent_runs(user: CurrentUser, session: SessionDep) -> list[RecentRunOut]:
+    return [
+        RecentRunOut(**RunOut.model_validate(run).model_dump(), project_name=name)
+        for run, name in await service.recent_runs(session, user)
     ]
 
 

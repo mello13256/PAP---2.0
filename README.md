@@ -24,13 +24,19 @@ Projeto desenvolvido no âmbito da PAP (Prova de Aptidão Profissional).
 | 9 | Tarefas e grafo de dependências | ✅ |
 | 10 | Orquestrador (planear, atribuir, executar, limites) | ✅ |
 | 11 | Sistema de revisão | ✅ |
-| 13 | Interface web | ⏳ |
+| 13 | Interface web (PT/EN) | ✅ |
+| 12 | Decisões e human-in-the-loop avançado | ⏳ |
+| 14–15 | Métricas comparativas e experiências | ⏳ |
 
 - Explicação de cada fase: [`docs/fases/`](docs/fases/)
 - Decisões de projeto: [`docs/decisoes-tecnicas.md`](docs/decisoes-tecnicas.md)
 - Instalação no Windows: [`docs/guia-instalacao-windows.md`](docs/guia-instalacao-windows.md)
 
-## Arranque rápido
+## Arranque rápido (Windows)
+
+**Duplo clique em `iniciar.cmd`**: prepara tudo e abre http://127.0.0.1:8000.
+
+Ou, manualmente:
 
 ```powershell
 copy .env.example .env

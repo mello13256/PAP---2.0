@@ -38,3 +38,7 @@ class RunOut(BaseModel):
     created_at: datetime
     started_at: datetime | None
     finished_at: datetime | None
+
+
+class RecentRunOut(RunOut):
+    project_name: str
