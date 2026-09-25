@@ -14,7 +14,7 @@ def test_empty_api_key_is_treated_as_not_configured() -> None:
 def test_dev_secret_key_is_generated_once_and_reused(tmp_path, monkeypatch) -> None:
     import app.core.config as config
 
-    monkeypatch.setattr(config, "BACKEND_DIR", tmp_path)
+    monkeypatch.setattr(config, "DATA_DIR", tmp_path / "data")
     first = Settings(_env_file=None, environment="development", database_url="sqlite://")
     second = Settings(_env_file=None, environment="development", database_url="sqlite://")
     assert len(first.secret_key.get_secret_value()) > 30

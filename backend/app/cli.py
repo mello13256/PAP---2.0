@@ -16,7 +16,8 @@ import asyncio
 import sys
 
 from app.agents.runtime import AgentRuntime, AgentSpec, CallContext, InMemoryCallRecorder
-from app.core.config import BACKEND_DIR, get_settings
+from app.core.config import get_settings
+from app.core.paths import PRICING_FILE
 from app.metrics.models import CallPurpose
 from app.providers.base import (
     ChatMessage,
@@ -67,7 +68,7 @@ async def _ping(provider_key: str, model: str, prompt: str, use_tools: bool) -> 
         AgentSpec(id=None, name=f"{provider_key}:{model}", provider=provider_key, model=model),
         registry.get(provider_key),
         recorder=recorder,
-        pricing=PricingTable.from_file(BACKEND_DIR / "pricing.json"),
+        pricing=PricingTable.from_file(PRICING_FILE),
     )
     called_tool = False
     print(f"[{runtime.spec.name}] ", end="", flush=True)

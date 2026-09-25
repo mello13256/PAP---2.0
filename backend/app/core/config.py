@@ -15,15 +15,16 @@ from typing import Literal
 from pydantic import PrivateAttr, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-BACKEND_DIR = Path(__file__).resolve().parents[2]
-REPO_ROOT = BACKEND_DIR.parent
+from app.core.paths import BACKEND_DIR, DATA_DIR, DEFAULT_WORKSPACES, ENV_FILE, REPO_ROOT
+
+__all__ = ["BACKEND_DIR", "DATA_DIR", "REPO_ROOT", "Settings", "get_settings"]
 
 logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=REPO_ROOT / ".env",
+        env_file=ENV_FILE,
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -40,7 +41,7 @@ class Settings(BaseSettings):
     # Aplica as migrações pendentes no arranque (útil em desenvolvimento e na demo).
     auto_migrate: bool = True
 
-    workspaces_dir: Path = REPO_ROOT / "workspaces"
+    workspaces_dir: Path = DEFAULT_WORKSPACES
 
     # Fornecedores de LLM (todos opcionais). Os URLs são os endpoints compatíveis
     # com a API da OpenAI de cada fornecedor; confirmar na documentação de cada um.
@@ -75,9 +76,8 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def _apply_defaults(self) -> Settings:
         if not self.database_url:
-            data_dir = BACKEND_DIR / "data"
-            data_dir.mkdir(parents=True, exist_ok=True)
-            self.database_url = f"sqlite+aiosqlite:///{(data_dir / 'multimind.db').as_posix()}"
+            DATA_DIR.mkdir(parents=True, exist_ok=True)
+            self.database_url = f"sqlite+aiosqlite:///{(DATA_DIR / 'multimind.db').as_posix()}"
 
         if self.secret_key is None:
             if self.environment == "production":
@@ -113,7 +113,7 @@ def _local_dev_secret(environment: str) -> str:
     """
     if environment == "test":
         return secrets.token_urlsafe(48)
-    path = BACKEND_DIR / "data" / "dev_secret_key"
+    path = DATA_DIR / "dev_secret_key"
     try:
         if path.exists():
             value = path.read_text(encoding="utf-8").strip()

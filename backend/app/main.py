@@ -22,14 +22,17 @@ from app.agents.service import remove_duplicate_agents
 from app.api import health
 from app.auth import router as auth_router
 from app.core.background import BackgroundTasks
-from app.core.config import BACKEND_DIR, Settings, get_settings
+from app.core.config import Settings, get_settings
 from app.core.errors import NotFoundError, register_error_handlers
 from app.core.logging import configure_logging
+from app.core.paths import FRONTEND_DIST, PRICING_FILE
 from app.db.migrations import upgrade_to_head
 from app.db.session import Database
 from app.events.bus import EventBus
 from app.messages import router as messages_router
 from app.metrics.recorder import DatabaseCallRecorder
+from app.models_manager import router as models_router
+from app.models_manager.service import OllamaManager
 from app.orchestration.run_manager import RunManager
 from app.projects import router as projects_router
 from app.providers.pricing import PricingTable
@@ -75,13 +78,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.db = db
     app.state.providers = build_registry(settings)
-    app.state.pricing = PricingTable.from_file(BACKEND_DIR / "pricing.json")
+    app.state.pricing = PricingTable.from_file(PRICING_FILE)
     app.state.call_recorder = DatabaseCallRecorder(db.sessionmaker)
     app.state.runtime_factory = RuntimeFactory(
         app.state.providers, app.state.call_recorder, app.state.pricing
     )
     app.state.bus = EventBus(db.sessionmaker)
     app.state.background = BackgroundTasks()
+    app.state.ollama = OllamaManager(settings.ollama_base_url)
     app.state.run_manager = RunManager(
         db.sessionmaker,
         app.state.bus,
@@ -99,11 +103,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(messages_router.router, prefix="/api")
     app.include_router(tasks_router.router, prefix="/api")
     app.include_router(workspace_router.router, prefix="/api")
+    app.include_router(models_router.router, prefix="/api")
     _serve_frontend(app)
     return app
-
-
-FRONTEND_DIST = BACKEND_DIR.parent / "frontend" / "dist"
 
 
 def _serve_frontend(app: FastAPI) -> None:
