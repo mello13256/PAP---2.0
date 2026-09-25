@@ -2,7 +2,8 @@ import { useState, type FormEvent } from 'react'
 import { api } from '../api/client'
 import { useAgents, useCreateAgent, usePingAgent, useProviderModels, useRemoveAgent, useRestoreDefaultAgents, useUpdateAgent } from '../api/hooks'
 import type { Agent, PingResult } from '../api/types'
-import { AgentName, Badge, Button, Card, ErrorBox, Field, Input, Loading, Select, Textarea, cx } from '../components/ui'
+import { Bot, FlaskConical, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { Avatar, Badge, Button, Card, ErrorBox, Field, Input, Loading, PageHeader, Select, Textarea, cx } from '../components/ui'
 import { useQuery } from '@tanstack/react-query'
 import { useT } from '../i18n'
 
@@ -142,10 +143,11 @@ function AgentCard({ agent, index }: { agent: Agent; index: number }) {
   const remove = useRemoveAgent()
   return (
     <Card className={cx(!agent.enabled && 'opacity-70')}>
-      <div className="flex flex-wrap items-start gap-3 p-4">
+      <div className="flex flex-wrap items-start gap-4 p-5">
+        <Avatar name={agent.name} index={index} size="lg" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <AgentName name={agent.name} index={index} />
+            <span className="text-base font-semibold text-slate-900">{agent.name}</span>
             <Badge>{agent.provider}</Badge>
             <span className="font-mono text-xs text-slate-500">{agent.model}</span>
             {!agent.enabled && <Badge className="bg-slate-200 text-slate-600">{t.agents.disabled}</Badge>}
@@ -157,12 +159,13 @@ function AgentCard({ agent, index }: { agent: Agent; index: number }) {
           <p className="mt-2 line-clamp-2 text-xs text-slate-500">{agent.system_prompt}</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" loading={ping.isPending} onClick={() => ping.mutate(agent.id)}>
+          <Button variant="secondary" icon={<FlaskConical className="h-4 w-4" />} loading={ping.isPending} onClick={() => ping.mutate(agent.id)}>
             {ping.isPending ? t.agents.testing : t.agents.test}
           </Button>
-          <Button variant="secondary" onClick={() => setEditing((e) => !e)}>{t.agents.edit}</Button>
+          <Button variant="secondary" icon={<Pencil className="h-4 w-4" />} onClick={() => setEditing((e) => !e)}>{t.agents.edit}</Button>
           <Button
             variant="danger"
+            icon={<Trash2 className="h-4 w-4" />}
             loading={remove.isPending}
             onClick={() => confirm(t.agents.confirmRemove) && remove.mutate(agent.id)}
           >
@@ -188,17 +191,17 @@ export function AgentsPage() {
   if (isLoading) return <Loading />
   if (error) return <ErrorBox error={error} />
   return (
-    <div className="mx-auto max-w-4xl space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{t.agents.title}</h1>
-          <p className="mt-1 text-sm text-slate-500">{t.agents.subtitle}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="ghost" loading={restore.isPending} onClick={() => restore.mutate()}>{t.agents.restoreDefaults}</Button>
-          <Button onClick={() => setCreating(true)}>+ {t.agents.new}</Button>
-        </div>
-      </div>
+    <div className="mx-auto max-w-5xl space-y-4">
+      <PageHeader
+        title={<span className="inline-flex items-center gap-2"><Bot className="h-6 w-6 text-indigo-500" />{t.agents.title}</span>}
+        subtitle={t.agents.subtitle}
+        action={
+          <>
+            <Button variant="ghost" icon={<RotateCcw className="h-4 w-4" />} loading={restore.isPending} onClick={() => restore.mutate()}>{t.agents.restoreDefaults}</Button>
+            <Button icon={<Plus className="h-4 w-4" />} onClick={() => setCreating(true)}>{t.agents.new}</Button>
+          </>
+        }
+      />
       {creating && (
         <Card>
           <div className="px-4 pt-4 text-sm font-semibold">{t.agents.new}</div>

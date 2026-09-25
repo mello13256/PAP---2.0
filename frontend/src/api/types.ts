@@ -193,3 +193,36 @@ export interface RunMetrics {
   estimated_cost_usd: number | null
   final_status: string
 }
+
+export interface InstalledModel {
+  name: string
+  size_bytes: number
+  modified_at: string | null
+  parameter_size: string | null
+  quantization: string | null
+  family: string | null
+}
+
+export interface ModelStatus {
+  ollama: { running: boolean; version: string | null; url: string }
+  installed: InstalledModel[]
+}
+
+export interface CatalogModel {
+  name: string
+  family: string
+  size_gb: number
+  recommended: boolean
+  description_pt: string
+  description_en: string
+}
+
+export interface PullState {
+  name: string
+  status: string
+  completed: number
+  total: number
+  percent: number
+  done: boolean
+  error: string | null
+}

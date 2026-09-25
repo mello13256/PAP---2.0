@@ -1,3 +1,4 @@
+import { FileCode2, FolderOpen, GitCompare, History } from 'lucide-react'
 import { useState } from 'react'
 import { useFile, useFileDiff, useFileHistory, useFiles } from '../../api/hooks'
 import { AgentName, Badge, Empty, Loading, cx, formatDate } from '../../components/ui'
@@ -38,7 +39,7 @@ export function FileExplorer({ projectId, highlight }: { projectId: string; high
   const diff = useFileDiff(projectId, showDiff ? path : null, shown ? shown - 1 : undefined, shown)
 
   if (files.isLoading) return <Loading />
-  if (!files.data?.length) return <Empty>{t.files.noFiles}</Empty>
+  if (!files.data?.length) return <Empty icon={<FolderOpen className="h-5 w-5" />}>{t.files.noFiles}</Empty>
 
   return (
     <div className="grid min-h-[480px] grid-cols-1 md:grid-cols-[260px_1fr]">
@@ -47,9 +48,9 @@ export function FileExplorer({ projectId, highlight }: { projectId: string; high
           <li key={f.path}>
             <button
               onClick={() => { setPath(f.path); setVersion(undefined); setShowDiff(false) }}
-              className={cx('flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left font-mono text-xs', path === f.path ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50', highlight?.has(f.path) && 'font-semibold')}
+              className={cx('flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left font-mono text-xs', path === f.path ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50', highlight?.has(f.path) && 'font-semibold')}
             >
-              <span className="truncate">{f.path}</span>
+              <span className="flex min-w-0 items-center gap-1.5"><FileCode2 className="h-3.5 w-3.5 shrink-0 text-slate-400" /><span className="truncate">{f.path}</span></span>
               <span className="shrink-0 text-slate-400">v{f.version}</span>
             </button>
           </li>
@@ -64,17 +65,17 @@ export function FileExplorer({ projectId, highlight }: { projectId: string; high
               {file.data && <Badge>v{file.data.version}{file.data.version === file.data.current_version ? ` · ${t.files.current}` : ''}</Badge>}
               <div className="ml-auto flex gap-1">
                 <button className={cx('rounded-md px-2 py-1 text-xs', !showDiff ? 'bg-slate-100 font-medium' : 'text-slate-500')} onClick={() => setShowDiff(false)}>{t.files.showContent}</button>
-                <button className={cx('rounded-md px-2 py-1 text-xs', showDiff ? 'bg-slate-100 font-medium' : 'text-slate-500')} onClick={() => setShowDiff(true)} disabled={!shown || shown < 2}>{t.files.showDiff}</button>
+                <button className={cx('rounded-md px-2 py-1 text-xs', showDiff ? 'bg-slate-100 font-medium' : 'text-slate-500')} onClick={() => setShowDiff(true)} disabled={!shown || shown < 2}><GitCompare className="mr-1 inline h-3.5 w-3.5" />{t.files.showDiff}</button>
               </div>
             </div>
             <div className="grid flex-1 grid-cols-1 xl:grid-cols-[1fr_240px]">
               <div className="min-w-0 bg-slate-50/50">
                 {file.isLoading ? <Loading /> : showDiff ? (diff.data ? <DiffView diff={diff.data.diff} /> : <Loading />) : (
-                  <pre className="scrollbar-thin max-h-[65vh] overflow-auto p-4 font-mono text-xs leading-5 whitespace-pre">{file.data?.content}</pre>
+                  <pre className="scrollbar-thin max-h-[65vh] overflow-auto bg-slate-950 p-4 font-mono text-xs leading-5 whitespace-pre text-slate-100">{file.data?.content}</pre>
                 )}
               </div>
               <div className="border-t border-slate-100 p-3 xl:border-l xl:border-t-0">
-                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{t.files.history}</div>
+                <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500"><History className="h-3.5 w-3.5" />{t.files.history}</div>
                 <ol className="space-y-2">
                   {[...(history.data ?? [])].reverse().map((v) => (
                     <li key={v.version}>

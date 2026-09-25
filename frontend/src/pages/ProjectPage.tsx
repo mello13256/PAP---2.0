@@ -1,7 +1,8 @@
+import { ChevronLeft, Download, FileCode2, History, Play, Rocket } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { useProject, useRuns } from '../api/hooks'
-import { Card, CardHeader, Empty, ErrorBox, Loading, StatusBadge, cx, formatDate } from '../components/ui'
+import { Card, CardHeader, Empty, ErrorBox, Loading, PageHeader, StatusBadge, cx, formatDate } from '../components/ui'
 import { FileExplorer } from '../features/files/FileExplorer'
 import { NewRunForm } from '../features/runs/NewRunForm'
 import { useT } from '../i18n'
@@ -16,43 +17,48 @@ export function ProjectPage() {
   if (project.isLoading) return <Loading />
   if (project.error) return <ErrorBox error={project.error} />
 
+  const tabs = [
+    { key: 'runs' as const, label: t.project.runs, icon: Play },
+    { key: 'files' as const, label: t.project.files, icon: FileCode2 },
+  ]
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <Link to="/" className="text-sm text-slate-500 hover:text-slate-800">← {t.common.back}</Link>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">{project.data!.name}</h1>
-          {project.data!.description && <p className="mt-1 text-sm text-slate-500">{project.data!.description}</p>}
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-lg bg-slate-100 p-0.5 text-sm font-medium">
-            {(['runs', 'files'] as const).map((key) => (
-              <button key={key} onClick={() => setTab(key)} className={cx('rounded-md px-3 py-1.5', tab === key ? 'bg-white shadow-sm' : 'text-slate-500')}>
-                {key === 'runs' ? t.project.runs : t.project.files}
-              </button>
-            ))}
-          </div>
-          <a href={`/api/projects/${projectId}/files/export`} className="rounded-lg px-3 py-1.5 text-sm text-slate-600 ring-1 ring-slate-300 hover:bg-slate-50">
-            ⬇ {t.project.export}
-          </a>
-        </div>
-      </div>
+    <div>
+      <PageHeader
+        back={<Link to="/" className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800"><ChevronLeft className="h-4 w-4" />{t.common.back}</Link>}
+        title={project.data!.name}
+        subtitle={project.data!.description}
+        action={
+          <>
+            <div className="inline-flex rounded-xl bg-white p-1 text-sm font-medium shadow-sm ring-1 ring-slate-200">
+              {tabs.map(({ key, label, icon: Icon }) => (
+                <button key={key} onClick={() => setTab(key)} className={cx('inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition', tab === key ? 'bg-indigo-600 text-white shadow' : 'text-slate-500 hover:text-slate-800')}>
+                  <Icon className="h-4 w-4" /> {label}
+                </button>
+              ))}
+            </div>
+            <a href={`/api/projects/${projectId}/files/export`} className="inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50">
+              <Download className="h-4 w-4" /> {t.project.export}
+            </a>
+          </>
+        }
+      />
 
       {tab === 'runs' ? (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,480px)_1fr]">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,520px)_1fr]">
           <Card>
-            <CardHeader title={t.project.newRun} />
+            <CardHeader title={t.project.newRun} icon={<Rocket className="h-4 w-4" />} />
             <NewRunForm projectId={projectId} />
           </Card>
-          <Card>
-            <CardHeader title={t.project.runs} />
-            {runs.isLoading ? <Loading /> : runs.data?.length === 0 ? <Empty>{t.project.noRuns}</Empty> : (
+          <Card className="self-start">
+            <CardHeader title={t.project.runs} icon={<History className="h-4 w-4" />} />
+            {runs.isLoading ? <Loading /> : runs.data?.length === 0 ? <Empty icon={<Play className="h-5 w-5" />}>{t.project.noRuns}</Empty> : (
               <ul className="divide-y divide-slate-100">
                 {runs.data?.map((r) => (
                   <li key={r.id}>
-                    <Link to={`/runs/${r.id}`} className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50">
+                    <Link to={`/runs/${r.id}`} className="flex items-start gap-3 px-5 py-3.5 transition hover:bg-slate-50">
                       <div className="min-w-0 flex-1">
-                        <div className="line-clamp-2 text-sm">{r.objective}</div>
+                        <div className="line-clamp-2 text-sm text-slate-800">{r.objective}</div>
                         <div className="mt-1 text-xs text-slate-400">{r.strategy_config.name ?? r.strategy_key} · {formatDate(r.created_at)}</div>
                       </div>
                       <StatusBadge status={r.status} />
@@ -64,7 +70,7 @@ export function ProjectPage() {
           </Card>
         </div>
       ) : (
-        <Card>
+        <Card className="overflow-hidden">
           <FileExplorer projectId={projectId} />
         </Card>
       )}

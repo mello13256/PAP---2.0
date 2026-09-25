@@ -3,6 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, qs } from './client'
 import type {
   Agent,
+  CatalogModel,
+  ModelStatus,
+  PullState,
   FileContent,
   FileEntry,
   FileVersion,
@@ -207,5 +210,43 @@ export function useRemoveAgent() {
   return useMutation({
     mutationFn: (id: string) => api.delete<{ deleted: boolean; agent: Agent | null }>(`/agents/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.agents }),
+  })
+}
+
+// ------------------------------------------------------------ modelos (Ollama)
+
+export const useModelStatus = () =>
+  useQuery({ queryKey: ['models', 'status'], queryFn: () => api.get<ModelStatus>('/models/status'), refetchInterval: 15_000 })
+
+export const useModelCatalog = () =>
+  useQuery({ queryKey: ['models', 'catalog'], queryFn: () => api.get<CatalogModel[]>('/models/catalog'), staleTime: Infinity })
+
+export function useModelPulls() {
+  const qc = useQueryClient()
+  return useQuery({
+    queryKey: ['models', 'pulls'],
+    queryFn: async () => {
+      const pulls = await api.get<PullState[]>('/models/pulls')
+      if (pulls.some((p) => p.done)) qc.invalidateQueries({ queryKey: ['models', 'status'] })
+      return pulls
+    },
+    // Enquanto houver downloads a decorrer, pergunta o progresso a cada segundo.
+    refetchInterval: (query) => (query.state.data?.some((p) => !p.done) ? 1000 : false),
+  })
+}
+
+export function usePullModel() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (name: string) => api.post<PullState>('/models/pull', { name }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['models', 'pulls'] }),
+  })
+}
+
+export function useDeleteModel() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (name: string) => api.delete<void>(`/models/${encodeURIComponent(name)}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['models', 'status'] }),
   })
 }

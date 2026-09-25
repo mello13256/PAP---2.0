@@ -5,6 +5,7 @@ import { Loading } from './components/ui'
 import { AgentsPage } from './pages/AgentsPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
+import { ModelsPage } from './pages/ModelsPage'
 import { ProjectPage } from './pages/ProjectPage'
 import { RunPage } from './pages/RunPage'
 
@@ -28,6 +29,7 @@ export default function App() {
       >
         <Route path="/" element={<DashboardPage />} />
         <Route path="/agents" element={<AgentsPage />} />
+        <Route path="/models" element={<ModelsPage />} />
         <Route path="/projects/:projectId" element={<ProjectPage />} />
         <Route path="/runs/:runId" element={<RunPage />} />
       </Route>
