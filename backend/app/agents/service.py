@@ -19,9 +19,15 @@ from app.providers.registry import ProviderRegistry, UnknownProviderError
 
 
 async def create_default_agents(session: AsyncSession, user: User) -> list[Agent]:
+    """Cria os agentes pré-definidos que o utilizador ainda não tem (pelo nome).
+
+    Pode ser chamado várias vezes sem criar duplicados.
+    """
+    existing = {a.name for a in await list_agents(session, user)}
     agents = [
         Agent(owner_id=user.id, **{**spec, "capabilities": [str(c) for c in spec["capabilities"]]})
         for spec in DEFAULT_AGENTS
+        if spec["name"] not in existing
     ]
     session.add_all(agents)
     await session.commit()

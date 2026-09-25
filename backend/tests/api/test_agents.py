@@ -15,6 +15,10 @@ async def test_new_users_get_the_default_agents(auth_client) -> None:
     assert "planning" in granite["capabilities"]
     assert agents[2]["enabled"] is False  # o simulado vem desativado
 
+    # Pedir os pré-definidos outra vez não cria duplicados.
+    assert (await auth_client.post("/api/agents/defaults")).json() == []
+    assert len((await auth_client.get("/api/agents")).json()) == 3
+
 
 async def test_create_update_and_disable_agent(auth_client) -> None:
     created = await auth_client.post(
