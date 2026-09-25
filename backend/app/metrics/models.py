@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, UUIDPrimaryKey
@@ -43,7 +43,7 @@ class LLMCall(UUIDPrimaryKey, Base):
     success: Mapped[bool]
     error_type: Mapped[str | None] = mapped_column(String(40))
     # None quando o preço do modelo é desconhecido; 0 para modelos locais/gratuitos.
-    estimated_cost_usd: Mapped[float | None]
+    estimated_cost_usd: Mapped[float | None] = mapped_column(Float)
     started_at: Mapped[datetime] = mapped_column(default=utcnow)
 
 
@@ -55,7 +55,7 @@ class RunMetrics(Base):
     run_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("runs.id", ondelete="CASCADE"), primary_key=True
     )
-    execution_time_s: Mapped[float] = mapped_column(default=0.0)
+    execution_time_s: Mapped[float] = mapped_column(Float, default=0.0)
     api_calls: Mapped[int] = mapped_column(default=0)
     failed_calls: Mapped[int] = mapped_column(default=0)
     input_tokens: Mapped[int] = mapped_column(default=0)
@@ -67,6 +67,6 @@ class RunMetrics(Base):
     revisions: Mapped[int] = mapped_column(default=0)
     decisions: Mapped[int] = mapped_column(default=0)
     human_interventions: Mapped[int] = mapped_column(default=0)
-    estimated_cost_usd: Mapped[float | None]
+    estimated_cost_usd: Mapped[float | None] = mapped_column(Float)
     final_status: Mapped[str] = mapped_column(String(32))
     computed_at: Mapped[datetime] = mapped_column(default=utcnow)
